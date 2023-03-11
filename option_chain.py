@@ -144,6 +144,7 @@ with tab4:
 spot_price = current_close
 PlotRange = np.arange(0.8*spot_price, 1.2*spot_price, 0.01)
 payoff = np.zeros(len(PlotRange))
+premium = 0
 
 for i in range (len(tab1_selected_row)):
     tab1_strike_price = tab1_selected_row[i]['Strike Price']
@@ -152,6 +153,7 @@ for i in range (len(tab1_selected_row)):
 
     payoff_long_call = call_payoff(PlotRange, tab1_strike_price, tab1_premium)
     payoff += qnt1*payoff_long_call
+    premium += qnt1*tab1_premium
 
 for i in range (len(tab2_selected_row)):
     tab2_strike_price = tab2_selected_row[i]['Strike Price']
@@ -160,6 +162,7 @@ for i in range (len(tab2_selected_row)):
 
     payoff_short_call = -1.0*call_payoff(PlotRange, tab2_strike_price, tab2_premium)
     payoff += qnt2*payoff_short_call
+    premium -= qnt2*tab2_premium
 
 for i in range (len(tab3_selected_row)):    
     tab3_strike_price = tab3_selected_row[i]['Strike Price']
@@ -168,6 +171,7 @@ for i in range (len(tab3_selected_row)):
 
     payoff_long_put = put_payoff(PlotRange, tab3_strike_price, tab3_premium)
     payoff += qnt3*payoff_long_put
+    premium += qnt3*tab3_premium
 
 for i in range (len(tab4_selected_row)):        
     tab4_strike_price = tab4_selected_row[i]['Strike Price']
@@ -176,6 +180,7 @@ for i in range (len(tab4_selected_row)):
 
     payoff_short_put = -1.0*put_payoff(PlotRange, tab4_strike_price, tab4_premium)
     payoff += qnt4*payoff_short_put
+    premium -= qnt4*tab4_premium
 
 payoff = 100*payoff
 # ============================================================================= #
@@ -183,8 +188,10 @@ fig = go.Figure()
 fig.add_trace(go.Scatter(x=PlotRange, y=payoff, mode='lines', name='Strategy', line_color='black'))
 PL_colorfill(PlotRange, payoff)
 
-st.write("Maximum Profit [within the shown range]:", str(round(payoff[np.where(payoff==max(payoff))][0], 2)))
-st.write("Maximum Loss [within the shown range]:", str(round(payoff[np.where(payoff==min(payoff))][0], 2)))
+st.write('<p style="color:green;font-size: 20px;">Maximum Profit [within the shown range]:</p>', f'<p style="color:green;font-size: 20px;">{str(round(payoff[np.where(payoff==max(payoff))][0], 2))}</p>', unsafe_allow_html=True)
+st.write('<p style="color:red;font-size: 20px;">Maximum Loss [within the shown range]:</p>', f'<p style="color:red;font-size: 20px;">{str(round(payoff[np.where(payoff==min(payoff))][0], 2))}</p>', unsafe_allow_html=True)
+premium_need_str = "Margin Needed: "+ str(round(100*premium, 2))
+st.write(f'<p style="color:black;font-size: 20px;">{premium_need_str}</p>', unsafe_allow_html=True)
 
 zero_crossings = np.where(np.diff(np.sign(payoff)))[0]
 
