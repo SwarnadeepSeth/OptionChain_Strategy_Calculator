@@ -78,7 +78,11 @@ if btn:
     price_show = ticker+" $"+str(current_close)+" ("+str(pct_chg)+"%)"
     st.header(price_show)
 
+    # Get the expiration dates
     exps = opt_chain['expirationDate'].unique()
+    # sort the expiration dates
+    exps = sorted(exps, key=lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
+
     st.write("--------------------------------------------------------------------------------------------------------------")
     option_date = st.selectbox("Select the Expiration Date:", (exps))
     st.write('You selected:', option_date)
