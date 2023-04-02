@@ -61,7 +61,7 @@ def options_chain(tk):
 st.title("Option chain and Profit/Loss Calculator (With Customized Strategy)")
 
 form = st.form(key='Stock Ticker')
-ticker = form.text_input(label="**:blue[Enter the Stock Ticker:]**")
+ticker = form.text_input(label="**:blue[Enter the Stock Ticker:]**", value="")
 btn = form.form_submit_button(label='Submit')
 
 tk = yf.Ticker(ticker)
