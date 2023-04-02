@@ -61,13 +61,13 @@ def options_chain(tk):
 st.title("Option chain and Profit/Loss Calculator (With Customized Strategy)")
 
 form = st.form(key='Stock Ticker')
-ticker = form.text_input(label="**:blue[Enter the Stock Ticker:]**", value="TSLA")
+ticker = form.text_input(label="**:blue[Enter the Stock Ticker:]**", value="AAPL")
 btn = form.form_submit_button(label='Submit')
 
 tk = yf.Ticker(ticker)
 
 opt_chain = options_chain(tk)
-opt_chain["Quantity"] = 1
+opt_chain["Quantity(Editable)"] = 1
 opt_chain = opt_chain.sort_values(by=['Strike Price'], ascending=False)
 ohlc_data = tk.history(period="1y")
 
@@ -77,15 +77,22 @@ pct_chg = round(100*(current_close - ohlc_data["Close"][-2])/ohlc_data["Close"][
 price_show = ticker+" $"+str(current_close)+" ("+str(pct_chg)+"%)"
 st.header(price_show)
 
+exps = opt_chain['expirationDate'].unique()
+st.write("--------------------------------------------------------------------------------------------------------------")
+option_date = st.selectbox("Select the Expiration Date:", (exps))
+st.write('You selected:', option_date)
+st.write("--------------------------------------------------------------------------------------------------------------")
+st.write("Option Chain:")
+
 # ============================================================================= #
 tab1, tab2, tab3, tab4 = st.tabs(["BUY CALL", "SELL CALL", "BUY PUT", "SELL PUT"])
 
-buy_call_chain = opt_chain[(opt_chain['expirationDate'] == '2023-03-17') & (opt_chain['CALL'] == True) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
+buy_call_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == True) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
 buy_call_chain = buy_call_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
 
 sell_call_chain = buy_call_chain.rename(columns = {'Ask Price': 'Bid Price'})
 
-buy_put_chain = opt_chain[(opt_chain['expirationDate'] == '2023-03-17') & (opt_chain['CALL'] == False) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
+buy_put_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == False) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
 buy_put_chain = buy_put_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
 
 sell_put_chain = buy_put_chain.rename(columns = {'Ask Price': 'Bid Price'})
@@ -99,8 +106,8 @@ with tab1:
     gd_tab1.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
     gd_tab1.configure_column("Ask Price", cellStyle={'color': 'blue'})
     gd_tab1.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab1.configure_column("Quantity", editable=True)
-    grid_table_tab1 = AgGrid(buy_call_chain, gridOptions=gd_tab1.build(), update_mode='MANUAL')
+    gd_tab1.configure_column("Quantity(Editable)", editable=True)
+    grid_table_tab1 = AgGrid(buy_call_chain, gridOptions=gd_tab1.build(), update_mode='MANUAL', key = 'tab1_grid')
 
     st.write('## Selected BUY CALLS')
     tab1_selected_row = grid_table_tab1["selected_rows"]
@@ -111,8 +118,8 @@ with tab2:
     gd_tab2.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
     gd_tab2.configure_column("Bid Price", cellStyle={'color': 'blue'})
     gd_tab2.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab2.configure_column("Quantity", editable=True)
-    grid_table_tab2 = AgGrid(sell_call_chain, gridOptions=gd_tab2.build(), update_mode='MANUAL')
+    gd_tab2.configure_column("Quantity(Editable)", editable=True)
+    grid_table_tab2 = AgGrid(sell_call_chain, gridOptions=gd_tab2.build(), update_mode='MANUAL', key = 'tab2_grid')
 
     st.write('## Selected SELL CALLS')
     tab2_selected_row = grid_table_tab2["selected_rows"]
@@ -122,8 +129,8 @@ with tab3:
     gd_tab3.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
     gd_tab3.configure_column("Ask Price", cellStyle={'color': 'blue'})
     gd_tab3.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab3.configure_column("Quantity", editable=True)
-    grid_table_tab3 = AgGrid(buy_put_chain, gridOptions=gd_tab3.build(), update_mode='MANUAL')
+    gd_tab3.configure_column("Quantity(Editable)", editable=True)
+    grid_table_tab3 = AgGrid(buy_put_chain, gridOptions=gd_tab3.build(), update_mode='MANUAL', key = 'tab3_grid')
 
     st.write('## Selected BUY PUTS')
     tab3_selected_row = grid_table_tab3["selected_rows"]
@@ -133,8 +140,8 @@ with tab4:
     gd_tab4.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
     gd_tab4.configure_column("Bid Price", cellStyle={'color': 'blue'})
     gd_tab4.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab4.configure_column("Quantity", editable=True)
-    grid_table_tab4 = AgGrid(sell_put_chain, gridOptions=gd_tab4.build(), update_mode='MANUAL')
+    gd_tab4.configure_column("Quantity(Editable)", editable=True)
+    grid_table_tab4 = AgGrid(sell_put_chain, gridOptions=gd_tab4.build(), update_mode='MANUAL', key = 'tab4_grid')
 
     st.write('## Selected SELL PUTS')
     tab4_selected_row = grid_table_tab4["selected_rows"]
@@ -149,7 +156,7 @@ premium = 0
 for i in range (len(tab1_selected_row)):
     tab1_strike_price = tab1_selected_row[i]['Strike Price']
     tab1_premium = tab1_selected_row[i]['Ask Price']
-    qnt1 = int(tab1_selected_row[i]['Quantity'])
+    qnt1 = int(tab1_selected_row[i]['Quantity(Editable)'])
 
     payoff_long_call = call_payoff(PlotRange, tab1_strike_price, tab1_premium)
     payoff += qnt1*payoff_long_call
@@ -158,7 +165,7 @@ for i in range (len(tab1_selected_row)):
 for i in range (len(tab2_selected_row)):
     tab2_strike_price = tab2_selected_row[i]['Strike Price']
     tab2_premium = tab2_selected_row[i]['Bid Price']
-    qnt2 = int(tab2_selected_row[i]['Quantity'])
+    qnt2 = int(tab2_selected_row[i]['Quantity(Editable)'])
 
     payoff_short_call = -1.0*call_payoff(PlotRange, tab2_strike_price, tab2_premium)
     payoff += qnt2*payoff_short_call
@@ -167,7 +174,7 @@ for i in range (len(tab2_selected_row)):
 for i in range (len(tab3_selected_row)):    
     tab3_strike_price = tab3_selected_row[i]['Strike Price']
     tab3_premium = tab3_selected_row[i]['Ask Price']
-    qnt3 = int(tab3_selected_row[i]['Quantity'])
+    qnt3 = int(tab3_selected_row[i]['Quantity(Editable)'])
 
     payoff_long_put = put_payoff(PlotRange, tab3_strike_price, tab3_premium)
     payoff += qnt3*payoff_long_put
@@ -176,7 +183,7 @@ for i in range (len(tab3_selected_row)):
 for i in range (len(tab4_selected_row)):        
     tab4_strike_price = tab4_selected_row[i]['Strike Price']
     tab4_premium = tab4_selected_row[i]['Bid Price']
-    qnt4 = int(tab4_selected_row[i]['Quantity'])
+    qnt4 = int(tab4_selected_row[i]['Quantity(Editable)'])
 
     payoff_short_put = -1.0*put_payoff(PlotRange, tab4_strike_price, tab4_premium)
     payoff += qnt4*payoff_short_put
