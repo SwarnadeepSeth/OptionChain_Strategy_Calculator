@@ -61,192 +61,193 @@ def options_chain(tk):
 st.title("Option chain and Profit/Loss Calculator (With Customized Strategy)")
 
 form = st.form(key='Stock Ticker')
-ticker = form.text_input(label="**:blue[Enter the Stock Ticker:]**", value="")
+ticker = form.text_input(label="**:blue[Enter the US Stock Ticker:]**", value="")
 btn = form.form_submit_button(label='Submit')
 
-tk = yf.Ticker(ticker)
+if btn:
+    tk = yf.Ticker(ticker)
 
-opt_chain = options_chain(tk)
-opt_chain["Quantity(Editable)"] = 1
-opt_chain = opt_chain.sort_values(by=['Strike Price'], ascending=False)
-ohlc_data = tk.history(period="1y")
+    opt_chain = options_chain(tk)
+    opt_chain["Quantity(Editable)"] = 1
+    opt_chain = opt_chain.sort_values(by=['Strike Price'], ascending=False)
+    ohlc_data = tk.history(period="1y")
 
-current_close = round(ohlc_data["Close"][-1], 2)
-pct_chg = round(100*(current_close - ohlc_data["Close"][-2])/ohlc_data["Close"][0], 2)
+    current_close = round(ohlc_data["Close"][-1], 2)
+    pct_chg = round(100*(current_close - ohlc_data["Close"][-2])/ohlc_data["Close"][0], 2)
 
-price_show = ticker+" $"+str(current_close)+" ("+str(pct_chg)+"%)"
-st.header(price_show)
+    price_show = ticker+" $"+str(current_close)+" ("+str(pct_chg)+"%)"
+    st.header(price_show)
 
-exps = opt_chain['expirationDate'].unique()
-st.write("--------------------------------------------------------------------------------------------------------------")
-option_date = st.selectbox("Select the Expiration Date:", (exps))
-st.write('You selected:', option_date)
-st.write("--------------------------------------------------------------------------------------------------------------")
-st.write("Option Chain:")
+    exps = opt_chain['expirationDate'].unique()
+    st.write("--------------------------------------------------------------------------------------------------------------")
+    option_date = st.selectbox("Select the Expiration Date:", (exps))
+    st.write('You selected:', option_date)
+    st.write("--------------------------------------------------------------------------------------------------------------")
+    st.write("Option Chain:")
 
-# ============================================================================= #
-tab1, tab2, tab3, tab4 = st.tabs(["BUY CALL", "SELL CALL", "BUY PUT", "SELL PUT"])
+    # ============================================================================= #
+    tab1, tab2, tab3, tab4 = st.tabs(["BUY CALL", "SELL CALL", "BUY PUT", "SELL PUT"])
 
-buy_call_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == True) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
-buy_call_chain = buy_call_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
+    buy_call_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == True) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
+    buy_call_chain = buy_call_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
 
-sell_call_chain = buy_call_chain.rename(columns = {'Ask Price': 'Bid Price'})
+    sell_call_chain = buy_call_chain.rename(columns = {'Ask Price': 'Bid Price'})
 
-buy_put_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == False) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
-buy_put_chain = buy_put_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
+    buy_put_chain = opt_chain[(opt_chain['expirationDate'] == option_date) & (opt_chain['CALL'] == False) & (abs(opt_chain['Strike Price']-current_close) <0.15*current_close)]
+    buy_put_chain = buy_put_chain.drop(columns = ['bid', 'ask', 'expirationDate', 'CALL', 'inTheMoney'])
 
-sell_put_chain = buy_put_chain.rename(columns = {'Ask Price': 'Bid Price'})
+    sell_put_chain = buy_put_chain.rename(columns = {'Ask Price': 'Bid Price'})
 
-gd_tab1 = GridOptionsBuilder.from_dataframe(buy_call_chain)
-gd_tab2 = GridOptionsBuilder.from_dataframe(sell_call_chain)
-gd_tab3 = GridOptionsBuilder.from_dataframe(buy_put_chain)
-gd_tab4 = GridOptionsBuilder.from_dataframe(sell_put_chain)
+    gd_tab1 = GridOptionsBuilder.from_dataframe(buy_call_chain)
+    gd_tab2 = GridOptionsBuilder.from_dataframe(sell_call_chain)
+    gd_tab3 = GridOptionsBuilder.from_dataframe(buy_put_chain)
+    gd_tab4 = GridOptionsBuilder.from_dataframe(sell_put_chain)
 
-with tab1:
-    gd_tab1.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
-    gd_tab1.configure_column("Ask Price", cellStyle={'color': 'blue'})
-    gd_tab1.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab1.configure_column("Quantity(Editable)", editable=True)
-    grid_table_tab1 = AgGrid(buy_call_chain, gridOptions=gd_tab1.build(), update_mode='MANUAL', key = 'tab1_grid')
+    with tab1:
+        gd_tab1.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
+        gd_tab1.configure_column("Ask Price", cellStyle={'color': 'blue'})
+        gd_tab1.configure_selection(selection_mode='multiple', use_checkbox=True)
+        gd_tab1.configure_column("Quantity(Editable)", editable=True)
+        grid_table_tab1 = AgGrid(buy_call_chain, gridOptions=gd_tab1.build(), update_mode='MANUAL', key = 'tab1_grid')
 
-    st.write('## Selected BUY CALLS')
-    tab1_selected_row = grid_table_tab1["selected_rows"]
-    st.dataframe(tab1_selected_row)
+        st.write('## Selected BUY CALLS')
+        tab1_selected_row = grid_table_tab1["selected_rows"]
+        st.dataframe(tab1_selected_row)
 
 
-with tab2:
-    gd_tab2.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
-    gd_tab2.configure_column("Bid Price", cellStyle={'color': 'blue'})
-    gd_tab2.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab2.configure_column("Quantity(Editable)", editable=True)
-    grid_table_tab2 = AgGrid(sell_call_chain, gridOptions=gd_tab2.build(), update_mode='MANUAL', key = 'tab2_grid')
+    with tab2:
+        gd_tab2.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
+        gd_tab2.configure_column("Bid Price", cellStyle={'color': 'blue'})
+        gd_tab2.configure_selection(selection_mode='multiple', use_checkbox=True)
+        gd_tab2.configure_column("Quantity(Editable)", editable=True)
+        grid_table_tab2 = AgGrid(sell_call_chain, gridOptions=gd_tab2.build(), update_mode='MANUAL', key = 'tab2_grid')
 
-    st.write('## Selected SELL CALLS')
-    tab2_selected_row = grid_table_tab2["selected_rows"]
-    st.dataframe(tab2_selected_row)
+        st.write('## Selected SELL CALLS')
+        tab2_selected_row = grid_table_tab2["selected_rows"]
+        st.dataframe(tab2_selected_row)
 
-with tab3:
-    gd_tab3.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
-    gd_tab3.configure_column("Ask Price", cellStyle={'color': 'blue'})
-    gd_tab3.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab3.configure_column("Quantity(Editable)", editable=True)
-    grid_table_tab3 = AgGrid(buy_put_chain, gridOptions=gd_tab3.build(), update_mode='MANUAL', key = 'tab3_grid')
+    with tab3:
+        gd_tab3.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
+        gd_tab3.configure_column("Ask Price", cellStyle={'color': 'blue'})
+        gd_tab3.configure_selection(selection_mode='multiple', use_checkbox=True)
+        gd_tab3.configure_column("Quantity(Editable)", editable=True)
+        grid_table_tab3 = AgGrid(buy_put_chain, gridOptions=gd_tab3.build(), update_mode='MANUAL', key = 'tab3_grid')
 
-    st.write('## Selected BUY PUTS')
-    tab3_selected_row = grid_table_tab3["selected_rows"]
-    st.dataframe(tab3_selected_row)
+        st.write('## Selected BUY PUTS')
+        tab3_selected_row = grid_table_tab3["selected_rows"]
+        st.dataframe(tab3_selected_row)
 
-with tab4:
-    gd_tab4.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
-    gd_tab4.configure_column("Bid Price", cellStyle={'color': 'blue'})
-    gd_tab4.configure_selection(selection_mode='multiple', use_checkbox=True)
-    gd_tab4.configure_column("Quantity(Editable)", editable=True)
-    grid_table_tab4 = AgGrid(sell_put_chain, gridOptions=gd_tab4.build(), update_mode='MANUAL', key = 'tab4_grid')
+    with tab4:
+        gd_tab4.configure_column("Strike Price", cellStyle={'color': 'red', 'textAlign': 'center'})
+        gd_tab4.configure_column("Bid Price", cellStyle={'color': 'blue'})
+        gd_tab4.configure_selection(selection_mode='multiple', use_checkbox=True)
+        gd_tab4.configure_column("Quantity(Editable)", editable=True)
+        grid_table_tab4 = AgGrid(sell_put_chain, gridOptions=gd_tab4.build(), update_mode='MANUAL', key = 'tab4_grid')
 
-    st.write('## Selected SELL PUTS')
-    tab4_selected_row = grid_table_tab4["selected_rows"]
-    st.dataframe(tab4_selected_row)
+        st.write('## Selected SELL PUTS')
+        tab4_selected_row = grid_table_tab4["selected_rows"]
+        st.dataframe(tab4_selected_row)
 
-# ============================================================================= #
-spot_price = current_close
-PlotRange = np.arange(0.8*spot_price, 1.2*spot_price, 0.01)
-payoff = np.zeros(len(PlotRange))
-premium = 0
+    # ============================================================================= #
+    spot_price = current_close
+    PlotRange = np.arange(0.8*spot_price, 1.2*spot_price, 0.01)
+    payoff = np.zeros(len(PlotRange))
+    premium = 0
 
-for i in range (len(tab1_selected_row)):
-    tab1_strike_price = tab1_selected_row[i]['Strike Price']
-    tab1_premium = tab1_selected_row[i]['Ask Price']
-    qnt1 = int(tab1_selected_row[i]['Quantity(Editable)'])
+    for i in range (len(tab1_selected_row)):
+        tab1_strike_price = tab1_selected_row[i]['Strike Price']
+        tab1_premium = tab1_selected_row[i]['Ask Price']
+        qnt1 = int(tab1_selected_row[i]['Quantity(Editable)'])
 
-    payoff_long_call = call_payoff(PlotRange, tab1_strike_price, tab1_premium)
-    payoff += qnt1*payoff_long_call
-    premium += qnt1*tab1_premium
+        payoff_long_call = call_payoff(PlotRange, tab1_strike_price, tab1_premium)
+        payoff += qnt1*payoff_long_call
+        premium += qnt1*tab1_premium
 
-for i in range (len(tab2_selected_row)):
-    tab2_strike_price = tab2_selected_row[i]['Strike Price']
-    tab2_premium = tab2_selected_row[i]['Bid Price']
-    qnt2 = int(tab2_selected_row[i]['Quantity(Editable)'])
+    for i in range (len(tab2_selected_row)):
+        tab2_strike_price = tab2_selected_row[i]['Strike Price']
+        tab2_premium = tab2_selected_row[i]['Bid Price']
+        qnt2 = int(tab2_selected_row[i]['Quantity(Editable)'])
 
-    payoff_short_call = -1.0*call_payoff(PlotRange, tab2_strike_price, tab2_premium)
-    payoff += qnt2*payoff_short_call
-    premium -= qnt2*tab2_premium
+        payoff_short_call = -1.0*call_payoff(PlotRange, tab2_strike_price, tab2_premium)
+        payoff += qnt2*payoff_short_call
+        premium -= qnt2*tab2_premium
 
-for i in range (len(tab3_selected_row)):    
-    tab3_strike_price = tab3_selected_row[i]['Strike Price']
-    tab3_premium = tab3_selected_row[i]['Ask Price']
-    qnt3 = int(tab3_selected_row[i]['Quantity(Editable)'])
+    for i in range (len(tab3_selected_row)):    
+        tab3_strike_price = tab3_selected_row[i]['Strike Price']
+        tab3_premium = tab3_selected_row[i]['Ask Price']
+        qnt3 = int(tab3_selected_row[i]['Quantity(Editable)'])
 
-    payoff_long_put = put_payoff(PlotRange, tab3_strike_price, tab3_premium)
-    payoff += qnt3*payoff_long_put
-    premium += qnt3*tab3_premium
+        payoff_long_put = put_payoff(PlotRange, tab3_strike_price, tab3_premium)
+        payoff += qnt3*payoff_long_put
+        premium += qnt3*tab3_premium
 
-for i in range (len(tab4_selected_row)):        
-    tab4_strike_price = tab4_selected_row[i]['Strike Price']
-    tab4_premium = tab4_selected_row[i]['Bid Price']
-    qnt4 = int(tab4_selected_row[i]['Quantity(Editable)'])
+    for i in range (len(tab4_selected_row)):        
+        tab4_strike_price = tab4_selected_row[i]['Strike Price']
+        tab4_premium = tab4_selected_row[i]['Bid Price']
+        qnt4 = int(tab4_selected_row[i]['Quantity(Editable)'])
 
-    payoff_short_put = -1.0*put_payoff(PlotRange, tab4_strike_price, tab4_premium)
-    payoff += qnt4*payoff_short_put
-    premium -= qnt4*tab4_premium
+        payoff_short_put = -1.0*put_payoff(PlotRange, tab4_strike_price, tab4_premium)
+        payoff += qnt4*payoff_short_put
+        premium -= qnt4*tab4_premium
 
-payoff = 100*payoff
-# ============================================================================= #
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=PlotRange, y=payoff, mode='lines', name='Strategy', line_color='black'))
-PL_colorfill(PlotRange, payoff)
+    payoff = 100*payoff
+    # ============================================================================= #
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=PlotRange, y=payoff, mode='lines', name='Strategy', line_color='black'))
+    PL_colorfill(PlotRange, payoff)
 
-st.write('<p style="color:green;font-size: 20px;">Maximum Profit [within the shown range]:</p>', f'<p style="color:green;font-size: 20px;">{str(round(payoff[np.where(payoff==max(payoff))][0], 2))}</p>', unsafe_allow_html=True)
-st.write('<p style="color:red;font-size: 20px;">Maximum Loss [within the shown range]:</p>', f'<p style="color:red;font-size: 20px;">{str(round(payoff[np.where(payoff==min(payoff))][0], 2))}</p>', unsafe_allow_html=True)
-premium_need_str = "Margin Needed: "+ str(round(100*premium, 2))
-st.write(f'<p style="color:black;font-size: 20px;">{premium_need_str}</p>', unsafe_allow_html=True)
+    st.write('<p style="color:green;font-size: 20px;">Maximum Profit [within the shown range]:</p>', f'<p style="color:green;font-size: 20px;">{str(round(payoff[np.where(payoff==max(payoff))][0], 2))}</p>', unsafe_allow_html=True)
+    st.write('<p style="color:red;font-size: 20px;">Maximum Loss [within the shown range]:</p>', f'<p style="color:red;font-size: 20px;">{str(round(payoff[np.where(payoff==min(payoff))][0], 2))}</p>', unsafe_allow_html=True)
+    premium_need_str = "Margin Needed: "+ str(round(100*premium, 2))
+    st.write(f'<p style="color:black;font-size: 20px;">{premium_need_str}</p>', unsafe_allow_html=True)
 
-zero_crossings = np.where(np.diff(np.sign(payoff)))[0]
+    zero_crossings = np.where(np.diff(np.sign(payoff)))[0]
 
-if (len(zero_crossings) == 1):
-    st.write("Breakeven Price:", round(PlotRange[zero_crossings[0]],2))
+    if (len(zero_crossings) == 1):
+        st.write("Breakeven Price:", round(PlotRange[zero_crossings[0]],2))
 
-if (len(zero_crossings) == 2):
-    st.write("Lower Breakeven Price:", round(PlotRange[zero_crossings[0]],2))
-    st.write("Upper Breakeven Price:", round(PlotRange[zero_crossings[1]],2))
+    if (len(zero_crossings) == 2):
+        st.write("Lower Breakeven Price:", round(PlotRange[zero_crossings[0]],2))
+        st.write("Upper Breakeven Price:", round(PlotRange[zero_crossings[1]],2))
 
-fig.add_vline(x=spot_price, line_width=1, line_color="blue")
+    fig.add_vline(x=spot_price, line_width=1, line_color="blue")
 
-# format the layout
-fig.update_layout(
-    plot_bgcolor="#FFF", 
-    hovermode="x",
-    hoverdistance=500, # Distance to show hover label of data point
-    spikedistance=1000, # Distance to show spike
-    xaxis=dict(
-        title="Price",
-        linecolor="#BCCCDC",  
-        showgrid=False,
-        titlefont=dict(size=20),
-        tickfont = dict(size=18),
-        showspikes=True, # Show spike line for X-axis
-        spikethickness=2,
-        spikedash="dot",
-        spikecolor="#999999",
-        spikemode="across"
-    ),
-    yaxis=dict(
-        title="Profit/Loss",
-        linecolor="#BCCCDC", 
-        zeroline=True,
-        zerolinewidth=1, 
-        zerolinecolor='black',
-        showgrid=False, 
-        titlefont=dict(size=20),
-        tickfont = dict(size=18)
-    ),
-    legend=dict(
-        x=0.45, y=0.98, 
-        font=dict(size=15),
-        bgcolor='rgba(0,0,0,0)',
-        itemsizing='constant',
-        itemclick=False,
-        itemdoubleclick=False
+    # format the layout
+    fig.update_layout(
+        plot_bgcolor="#FFF", 
+        hovermode="x",
+        hoverdistance=500, # Distance to show hover label of data point
+        spikedistance=1000, # Distance to show spike
+        xaxis=dict(
+            title="Price",
+            linecolor="#BCCCDC",  
+            showgrid=False,
+            titlefont=dict(size=20),
+            tickfont = dict(size=18),
+            showspikes=True, # Show spike line for X-axis
+            spikethickness=2,
+            spikedash="dot",
+            spikecolor="#999999",
+            spikemode="across"
+        ),
+        yaxis=dict(
+            title="Profit/Loss",
+            linecolor="#BCCCDC", 
+            zeroline=True,
+            zerolinewidth=1, 
+            zerolinecolor='black',
+            showgrid=False, 
+            titlefont=dict(size=20),
+            tickfont = dict(size=18)
+        ),
+        legend=dict(
+            x=0.45, y=0.98, 
+            font=dict(size=15),
+            bgcolor='rgba(0,0,0,0)',
+            itemsizing='constant',
+            itemclick=False,
+            itemdoubleclick=False
+        )
     )
-)
 
-st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    st.plotly_chart(fig, theme="streamlit", use_container_width=True)
